@@ -28,4 +28,4 @@ docker pull metocean/schism-public
 - step 1
 - step 2
 
-Please report any bugs [here](https://github.com/metocean/schism-tools/issues).
+Please report any bugs [here](https://github.com/metocean/schism-public/issues).
