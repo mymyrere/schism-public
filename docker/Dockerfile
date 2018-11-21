@@ -1,8 +1,6 @@
 FROM centos:centos7
 MAINTAINER Remy Zyngfogel <remy@metocean.co.nz>
 
-ADD packages/hdf5-1.10.1.tar.gz /
-
 RUN yum -y install epel-release &&\
     yum -y install git vim sudo tar unzip subversion wget &&\
     yum -y update &&\
@@ -21,15 +19,15 @@ RUN yum -y install libcurl-devel
 # Get HDF5, NETCDF, NETDF-FORTRAN AND MPICH2 via ftp/http
 RUN echo "-----------------GET Netcdf MPICH and HDF5"-----------------"" &&\ 
 # Commented out as hdfgroup.org no longer allowing anonymous ftp login
-#   wget ftp://ftp.hdfgroup.org/HDF5/releases/hdf5-1.10/hdf5-1.10.1/src/hdf5-1.10.1.tar.gz && \
+    wget https://support.hdfgroup.org/ftp/HDF5/current/src/hdf5-1.10.4.tar.gz && \
     wget ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.5.0.tar.gz && \
     wget ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-fortran-4.4.4.tar.gz && \
     wget http://www.mpich.org/static/downloads/3.2/mpich-3.2.tar.gz 
 
 # Install HDF5
 # Commented out as archive already untarred via ADD hdf5-1.10.1.tar.gz /
-# RUN tar zxvf hdf5-1.10.1.tar.gz && \
-RUN cd hdf5-1.10.1 && \
+RUN tar zxvf hdf5-1.10.4.tar.gz && \
+    cd hdf5-1.10.4 && \
     ./configure --prefix=/usr/local \
                 --enable-shared \
                 --enable-hl \
