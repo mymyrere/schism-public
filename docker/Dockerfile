@@ -18,7 +18,6 @@ RUN yum -y install libcurl-devel
 
 # Get HDF5, NETCDF, NETDF-FORTRAN AND MPICH2 via ftp/http
 RUN echo "-----------------GET Netcdf MPICH and HDF5"-----------------"" &&\ 
-# Commented out as hdfgroup.org no longer allowing anonymous ftp login
     wget https://support.hdfgroup.org/ftp/HDF5/current/src/hdf5-1.10.4.tar.gz && \
     wget ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.5.0.tar.gz && \
     wget ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-fortran-4.4.4.tar.gz && \
