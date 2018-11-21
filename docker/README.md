@@ -6,7 +6,7 @@ NOTE: this project is in very early stages of development.
 
 - Install docker in your system. Some guidelines [here](https://docs.docker.com/engine/installation/).
 - Create a Dockerhub account [here](https://hub.docker.com/).
-- Pull the ROMS docker image:
+- Pull the SCHISM docker image:
 ```
 docker pull metocean/schism-public
 ```
