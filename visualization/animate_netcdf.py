@@ -7,8 +7,6 @@
 # Last Modified By  : Tom Durrant <t.durrant@metocean.co.nz>
 # encoding: utf-8
 
-
-from pymo.core.lib import UDSQuery
 import urllib,time
 import xarray as xr
 import matplotlib.pyplot as plt
