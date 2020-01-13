@@ -1,0 +1,61 @@
+## input file to build a 2D model with selfe
+### those lines are compulsory
+rootdir: /home/remy/oldhome/Buisness/0448_Hokianga/test_run
+exec_bin: pschism
+param_tmp: /home/remy/Software/schism-public/template/schism_param-v5.7.0.tmpl
+hgrid_file: /home/remy/oldhome/Buisness/0448_Hokianga/grids/hgrid.gr3
+epsg: 2193
+
+
+vgrid_config:
+  nsigma:  20
+  hc: 30
+  thetab: 1
+  thetaf: 10
+  zcoord: [10,20,30]
+
+timing:
+ time start: 2014, 01, 20
+ time end: 2014, 01, 30
+
+hydro_config:
+ mode: diffusion 1
+ dt: 20
+ ramp: 5 # in days
+ output dt: 0.25 # in hours
+ file length: 24 # in hours
+ ouput station: 1
+ station dt: 1 # in hours
+ output hotstart: 0
+ hotstart dt: 24 # in hours
+ ntracer_gen: 5
+
+obc:
+ cons: Z0 M2 S2 N2 K2 K1 O1 P1 Q1 MF MM M4 MS4 MN4
+ 1: # open bnd
+   iettype:
+     value: 4
+   ifltype:
+     value: -4
+     inflow: 0.9
+     outflow: 0.3
+   itetype:
+    value: 4
+    tobc: 0.5
+   isatype:
+    value: 4
+    tobc: 0.5
+ 2-4: #Rivers
+   iettype:
+     value: 0
+   ifltype:
+     value: 1
+     tobc: 0.8
+   itetype:
+    value: 1
+    tobc: 0.8
+   isatype: 
+    value: 2
+    const: 0
+    tobc: 1         
+
