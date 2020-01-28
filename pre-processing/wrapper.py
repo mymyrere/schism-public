@@ -14,6 +14,8 @@ from hgrid import HorizontalGrid
 from vgrid import VerticalGrid
 from param import ModelConfig
 from bctide import  BCinputs
+from datasourcing import download_data
+from openbnd import  OpenBoundaries
 
 logging.basicConfig(filename=None,
                     filemode='w',
@@ -27,7 +29,7 @@ class SCHISM():
     '''
 
     def __init__(self, rootdir, hydro_config,vgrid_config,obc,param_tmp,exec_bin,
-                 hgrid_file,timing,
+                 hgrid_file,timing,input_files,forcings,
                  indir=None,
                  logdir=None,
                  errors=None,
@@ -38,6 +40,8 @@ class SCHISM():
         self.rootdir = rootdir
         self.hydro_config  = hydro_config
         self.vgrid_config  = vgrid_config
+        self.input_files = input_files
+        self.forcings= forcings
         self.obc  = obc
         self.timing= timing
 
@@ -98,6 +102,18 @@ class SCHISM():
    
         self.vgrid=vgrid_reader.load(self.vgrid_config['vfile'])
 
+
+
+        lat0=sum(self.hgrid.latitude)/len(self.hgrid.latitude)
+        t0 = dateutil.parser.parse(self.timing["time start"])
+        t1 = dateutil.parser.parse(self.timing["time end"])
+
+        #  #----------------------- Download Initial and Boundary fields ---------- 
+        dwnl=download_data(t0,t1,logger=self.logger)
+        for file in self.input_files.keys():     
+          dwnl.get_input_data(self.input_files[file])
+
+
         self.logger.info('----------------------------------------------------------')
         #----------------------- Write command file (param.in) ------------------
         cfg = ModelConfig(hydro=self.hydro_config, logger=self.logger)
@@ -105,16 +121,21 @@ class SCHISM():
 
         # #----------------------- Set Boundary Conditions (bctides.in) -----------
         # # Store boundary arrays in each obc bctype object (Ex: self.obc['btype']['7']['iettype'])
-        lat0=sum(self.hgrid.latitude)/len(self.hgrid.latitude)
-        t0 = dateutil.parser.parse(self.timing["time start"])
 
-
-        bcinput = BCinputs(obc=self.obc,lat0=lat0,t0=t0, logger=self.logger)
+        bcinput = BCinputs(obc=self.obc,nnode=self.hgrid.nnode, lat0=lat0,t0=t0, logger=self.logger)
         bcinput.make_bctides(join(self.rootdir,'bctides.in'))
 
+       #  # ------------------- Create Ocean boundary forcing -----------------
+        for key in self.forcings.keys():
+          Obf = OpenBoundaries(obc=self.forcings[key],hgrid=self.hgrid,vgrid=self.vgrid,t0=t0,t1=t1, logger=self.logger)
+          if 'tidal' in self.forcings[key]:
+            Obf.add_tide(self.forcings[key]['tidal'])
 
-       #  #----------------------- Download Initial and Boundary fields ----------        
-       #  self._get_input_data()
+          if 'residual' in self.forcings[key]:
+            Obf.add_res(self.forcings[key]['residual'])
+
+          Obf.make_boundary(join(self.rootdir,key),self.forcings[key].get('dt',3600))
+
 
        # #------------------------- Check/Prepare for hotstart --------------------
        #  self.hot = HotStart(nest=self.nest, logger=self.logger)

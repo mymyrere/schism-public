@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 from mako.template import Template
 from mako.runtime import Context
-from StringIO import StringIO
+from io import StringIO
 from mako import exceptions
 
 
@@ -299,9 +299,9 @@ class ModelConfig(object):
             self.userconfig['hydro']['ihorcon']=0
             self.userconfig['hydro']['indvel']=0
         else:
-            print '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-            print '!!!!!!!!Mode must be diffusion 1 or diffusion 2 or dispersion (eddying)!!!!!!!!!!!!!'
-            print '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            print('!!!!!!!!Mode must be diffusion 1 or diffusion 2 or dispersion (eddying)!!!!!!!!!!!!!')
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             import sys;sys.exit(-1)
 
 
@@ -349,7 +349,7 @@ class ModelConfig(object):
             stri=stri+key+'='+str(self.config[module][key])+','
 
         stri=stri[0:-1]+')'
-        exec stri
+        exec(stri)
 
         #import pdb;pdb.set_trace()
         try:

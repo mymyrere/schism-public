@@ -1,14 +1,47 @@
 from matplotlib.dates import date2num
-
+import numpy as np
 from ttide.t_getconsts import t_getconsts
 from ttide.t_vuf import t_vuf
+
+
+TRACERS_MODULE=['GEN','AGE','SED3D','EcoSim','ICM','CoSiNE','FIB','TIMOR']
+
+def Calculate(lat, t0, cons):
+
+    const = t_getconsts(np.array([]))
+    consindex = [np.where(const[0]['name']==con.ljust(4))[0][0] for con in cons]
+    # V: astronomical phase, U: nodal phase modulation, F: nodal amplitude correction
+    v,u,f = t_vuf('nodal', np.array([t0]), consindex, lat)
+    tear = 360.*(v+u)
+    tfreq = (2*np.pi)*const[0]['freq'][consindex]/3600.
+    talpha = const[0]['name'][consindex]
+    return talpha, tfreq, tear, f
+
+def develop_bnd(obc):
+    # check if we have a loop in the dictionnary
+    if 'cons' in obc:
+        obc.pop('cons')
+
+    btype=dict()
+    
+    for nk in obc.keys():
+        if type(nk) is not int:
+            [aa,bb]=nk.split('-')
+            for nkk in range(int(aa)-1,int(bb)):
+                btype[int(nkk)]=obc[nk]
+                
+        else:
+    
+            btype[int(nk)-1]=obc[nk]
+
+    return btype
 
 class BCinputs(object):
     """
     Class that manages input file generation for a model simulation.
     """
 
-    def __init__(self,obc,lat0,t0, logger=None):
+    def __init__(self,obc,nnode,lat0,t0, logger=None):
         '''Docstring'''  
 
         if logger:
@@ -18,16 +51,51 @@ class BCinputs(object):
         self.t0= t0
         self.t0dec=date2num(t0)
         self.obc=obc
+        self.nnode=nnode
 
-    def Calculate(lat, t0, cons):
-        const = t_getconsts(np.array([]))
-        consindex = [np.where(const[0]['name']==con.ljust(4))[0][0] for con in cons]
-        # V: astronomical phase, U: nodal phase modulation, F: nodal amplitude correction
-        v,u,f = t_vuf('nodal', np.array([t0]), consindex, lat)
-        tear = 360.*(v+u)
-        tfreq = (2*np.pi)*const[0]['freq'][consindex]/3600.
-        talpha = const[0]['name'][consindex]
-        return talpha, tfreq, tear, f
+
+
+    
+    def _write_iettype(self,btypes,iettype):
+            
+
+            ## TAKE CARE OF iettype
+            if iettype==2: #this boundary is forced by a constant elevation
+                ethconst =btypes['iettype']['const']
+                self.bctides.write("%.2f\n" % (ethconst)) 
+
+            elif iettype==3 or iettype==5: #forced in frequency domain
+                print('This option is not implemented yet')
+                pass
+
+    def _write_ifltype(self,btypes,ifltype):
+
+            ## TAKE CARE OF ifltype
+        if ifltype==2: #forced in frequency domain
+            const=btypes['ifltype']['const']
+            self.bctides.write("%.4f\n" % (const))
+        elif ifltype==3 or ifltype==5: #this boundary is forced by a constant elevation
+            print("not implemented yet")
+        elif ifltype==-4: #time history of velocity 
+            inflow = btypes['ifltype']['inflow']
+            outflow = btypes['ifltype']['outflow']
+            self.bctides.write("%.2f %.2f\n" % (inflow,outflow))
+        elif ifltype==-1: #Flanther type radiation b.c.
+            eta_m0 = btypes['ifltype']['eta_m0']
+            qthcon = btypes['ifltype']['qthcon']
+            self.bctides.write("%.2f %.2f\n" % (eta_m0,qthcon))
+
+
+    def _write_tracers(self,btypes,module,flag):
+
+        if flag==1 or flag==3 or flag==4: #
+            tobc = btypes[module]['tobc']
+            self.bctides.write("%.2f\n" % (tobc))
+        elif flag==2: 
+            const = btypes[module]['const']
+            tobc = btypes[module]['tobc']
+            self.bctides.write("%.2f\n" % (const))
+            self.bctides.write("%.2f\n" % (tobc))
 
     def _write_bctides(self,filename, talpha=[], tfreq=[], tear=[], tnf=[]):
         '''
@@ -134,9 +202,9 @@ class BCinputs(object):
             *** Notes: the tidal amplitudes and phases can be generated using utility scripts shown on the web.'''
 
 
-        self.bctides = open(self.bctides_fname, 'w')
+        self.bctides = open(filename, 'w')
         # 48-character start time info string (only used for visualization with xmvis6)
-        self.bctides.write(self.nest.timerun.t0.strftime('%d/%m/%Y %H:%M:%S\n'))
+        self.bctides.write(self.t0.strftime('%d/%m/%Y %H:%M:%S\n'))
         # ntip tip_dp > # of constituents used in earth tidal potential; cut-off depth for applying tidal potential (i.e., it is not calculated when depth < tip_dp).
         self.bctides.write("0 1000\n")
         # nbfr > # of tidal boundary forcing frequencies
@@ -146,185 +214,50 @@ class BCinputs(object):
         	self.bctides.write("%s\n"%(talpha[k])) 
             # angular frequency (rad/s), nodal factor, earth equilibrium argument (deg)
         	self.bctides.write("%.6f %.6f %.6f\n" % (tfreq[k], tnf[k], np.mod(tear[k],360)))
+
+        
+
+
         #number of open boundary segments
-        self.bctides.write('%s\n'%self.nest.obc.nopen)
+        nopen=len(self.nnode)
+        self.bctides.write('%s\n'%nopen)
 
 
-        # looping through all open boundaries
-        for btype, bdict in self.nest.obc.btype.items():
+        btypes=develop_bnd(self.obc)
 
-            iettype = bdict['iettype']
-            ifltype = bdict['ifltype']
-            itetype = bdict['itetype']
-            isatype = bdict['isatype']
 
-            # open boundary types
-            bctypes = '{nnode} {iettype} {ifltype} {itetype} {isatype}'.format(nnode=bdict['nnode'],
-                                                                               iettype=iettype['type'],
-                                                                               ifltype=ifltype['type'],
-                                                                               itetype=itetype['type'],
-                                                                               isatype=isatype['type'])
 
-            # need to make the tracer bnd info. call consistent to other bnd types (i.e ocean, rivers)        
-            if self.nest.tracers:
-                bctypes = bctypes.__add__('{tracers}') 
-                trctypes = []
-
-                if btype in self.nest.tracers.obc.keys():
-                    for tid, tdict in self.nest.tracers.obc[btype].items():
-                        for tmodule in self.nest.tracers.obc['modules']: # to preserve module order in string
-                            if tid == tmodule:
-                                trctypes.append(' {itrtype}'.format(itrtype=tdict['itrtype']['type']))
-                else:
-                    for tmodule in self.nest.tracers.obc['modules']:
-                        if tmodule in self.nest.tracers.obc['active_modules']:
-                            trctypes.append(' {itrtype}'.format(itrtype=0))
-                
-                bctypes = bctypes.format(tracers=''.join(trctypes))
+        
+        for k in range(0,nopen):
+    # open boundary option
+            iettype = btypes[k]['iettype']['value']
+            ifltype = btypes[k]['ifltype']['value']
+            itetype = btypes[k]['itetype']['value']
+            isatype = btypes[k]['isatype']['value']
             
-            self.bctides.write(bctypes)
-            self.bctides.write("\n")
+            self.bctides.write("%.f %.f %.f %.f %.f" % (self.nnode[k],iettype,ifltype,itetype,isatype))
+            ## add the tracers
+            for modules in TRACERS_MODULE:
+                if modules in btypes[k]:
+                    self.bctides.write(" %.f" % (btypes[k][modules]['value']))
+                else:
+                    self.bctides.write(" %.f" % (0))
+            
+            self.bctides.write("\n" )
 
-            #----------------------------------------------------- Elevation b.c section ---------
 
-            #elevations are not specified (velocity must be specified).
-            if iettype['type'] == 0:
-                pass
-                # Check if velocity is specified or raise exception.
+            self._write_iettype(btypes[k],iettype)
+            self._write_ifltype(btypes[k],ifltype)
 
-            #time history of elevation (no input needed; elevation is read from elev.th)
-            elif iettype['type'] == 1:
-                pass
-                # Check if file exists or raise exception.
 
-            #forced by a constant elevation
-            elif iettype['type'] == 2:
-		    	self.bctides.write("{:.2f}\n".format(iettype['const']))
+            self._write_tracers(btypes[k],'itetype',itetype) # temperature
+            self._write_tracers(btypes[k],'isatype',isatype) # salinity
 
-		    #space and time-varying input (no input needed; elevation is read from elev2D.th)
-            elif iettype['type'] == 4:
-		    	pass
-                # Check if file exists or raise exception.
-
-            #iettype=3: forced by tides
-            #iettype=5: combination of 3 and 4 (elevation is read in from elev2D.th', and then added to tidal B.C.)
-            elif iettype['type'] in (3, 5):
-                et = self.get_tide(bdict['lons'], bdict['lats'], outfmt='constituents')['et']
-                for k in range(len(talpha)):
-                    # tidal constituent name
-                    self.bctides.write("%s\n"%(talpha[k])) 
-                    # loop over all open boundary nodes on this segment
-                    for i in range(len(bdict['nodes'])):
-                        # amplitude and phase for each node on this open boundary
-                        self.bctides.write("{:.6f} {:.6f}\n".format(et.amp[k,i],np.mod(degrees(et.pha[k,i]),360)))
-
-            #----------------------------------------------------- Velocity b.c section ----------
-
-            #velocity not specified
-            if ifltype['type'] == 0:
-                pass
-
-            #time history of discharge (read from flux.th)
-            elif ifltype['type'] == 1:
-                pass
-                # Check if file exist or raise exception.
-
-            #forced by a constant discharge (negative value means inflow)
-            elif ifltype['type'] == 2:
-		        self.bctides.write("{:.4f}\n".format(ifltype['const']))
-
-            #velocity forced in frequency domain
-            elif ifltype['type'] == 3:
-		        print "not implemented yet"
-
-            # 3D input (time history of velocity is read in from uv3D.th)
-            elif ifltype['type'] in (4,-4):
-                # Check if file exist or raise exception.
-                if ifltype['type'] == -4:
-		        	self.bctides.write("{:.2f} {:.2f}\n".format(ifltype['inflow'],ifltype['outflow']))
-
-            # combination of 4 and tides
-            elif ifltype['type'] in (5,-5):
-                # Check if file exist or raise exception.
-                
-                if ifltype['type'] == -5:
-		        	self.bctides.write("{:.2f} {:.2f}\n".format(ifltype['inflow'],ifltype['outflow']))
-
-                ut = self.get_tide(bdict['lons'], bdict['lats'], outfmt='constituents')['ut']
-                vt = self.get_tide(bdict['lons'], bdict['lats'], outfmt='constituents')['vt']
-                for k in range(len(talpha)):
-                    # tidal constituent name
-                    self.bctides.write("%s\n"%(talpha[k])) 
-                    # loop over all open boundary nodes on this segment
-                    for i in range(len(bdict['nodes'])):
-                        # amplitude and phase for (u,v) at each node on this open boundary
-                        self.bctides.write("{:.6f} {:.6f} {:.6f} {:.6f}\n".format(ut.amp[k,i],np.mod(degrees(ut.pha[k,i]),360),
-                                                                                  vt.amp[k,i],np.mod(degrees(vt.pha[k,i]),360)))
-
-	        # radiation condition - Flather (iettype must be 0)
-            elif ifltype['type'] == -1:
-		    	self.bctides.write("{:.2f} {:.2f}\n".format(ifltype['eta_m0'],ifltype['qthcon']))
-
-            #----------------------------------------------------- Temperature b.c section -------
-
-            # temperature not specified
-            if itetype['type'] == 0:
-                pass
-
-            # time history or initial profile for inflow or 3D input
-            if itetype['type'] == 1 or itetype['type'] == 3 or itetype['type'] == 4:
-		    	self.bctides.write("{:.2f}\n".format(itetype['tobc']))
-
-            # forced by a constant temperature
-            elif itetype['type'] == 2:
-		    	# constant temperature on this segment
-		    	self.bctides.write("{:.2f}\n".format(itetype['const']))
-		    	# nudging factor (between 0 and 1) for inflow
-		    	self.bctides.write("{:.2f}\n".format(itetype['tobc']))
-
-            #----------------------------------------------------- Salinity b.c section ----------
-
-            # salinity not specified
-            if isatype['type'] == 0:
-                pass 
-
-            # time history or initial profile for inflow or 3D input
-            elif isatype['type'] == 1 or isatype['type'] == 3 or isatype['type'] == 4:
-		    	self.bctides.write("{:.2f}\n".format(isatype['tobc']))
-
-            # forced by a constant salinity
-            elif isatype['type'] == 2:
-		    	# constant salinity on this segment
-		    	self.bctides.write("{:.2f}\n".format(isatype['const']))
-		    	# nudging factor (between 0 and 1) for inflow
-		    	self.bctides.write("{:.2f}\n".format(isatype['tobc']))
-
-            #----------------------------------------------------- Tracers b.c section -----------
-            if self.nest.tracers:
-  
-                if btype in self.nest.tracers.obc.keys():
-                    for tid, tdict in self.nest.tracers.obc[btype].items():
-                        itrtype = tdict['itrtype']
-                        for tmodule in self.nest.tracers.obc['modules']: # to preserve module order in string
-                            if tid == tmodule:
-                                tthconst = self.nest.tracers.obc['bctides'][tid][btype]['tthconst'] 
-                                tobc = self.nest.tracers.obc['bctides'][tid][btype]['tobc'] 
-
-                                # tracer not specified
-                                if itrtype['type'] == 0:
-                                    pass
-
-                                # time history or initial profile for inflow or 3D input
-                                elif itrtype['type'] == 1 or itrtype['type'] == 3 or itrtype['type'] == 4:
-		                        	self.bctides.write("{tobc}\n".format(tobc=tobc))
-                                
-                                # forced by a constant tracer
-                                elif itrtype['type'] == 2:
-                                    # constant tracer on this segment
-                                    self.bctides.write("{tthconst}\n".format(tthconst=tthconst))
-                                    # nudging factor (between 0 and 1) for inflow
-                                    self.bctides.write("{tobc}\n".format(tobc=tobc))
-
+            for modules in TRACERS_MODULE:
+                if modules in btypes[k]:
+                    self._write_tracers(btypes[k],modules,btypes[k][modules]['value']) # salinity
+                            
+                        
         self.bctides.flush()
         self.bctides.close()
 
@@ -333,9 +266,9 @@ class BCinputs(object):
         '''Docstring'''
         
         if self.logger:
-            self.logger.info("Writing Bctides.in")
+            self.logger.info("  Writing %s" %filename)
 
 
-        talpha, tfreq, tear, tnf = Calculate(self.lat0, self.t0dec, self.cons)
+        talpha, tfreq, tear, tnf = Calculate(self.lat0, self.t0dec, self.obc['cons'].split(' '))
         self._write_bctides(filename,talpha, tfreq, tear, tnf)
 

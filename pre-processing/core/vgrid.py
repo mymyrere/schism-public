@@ -33,6 +33,8 @@ class VerticalGrid(BaseIO):
         self._read_Slevel()
         self._read_LSCcoord()
 
+        return self
+
 
     def close(self):
         self.vgrid_file.close()
@@ -70,18 +72,18 @@ class VerticalGrid(BaseIO):
     def get_LSC(self, NP, dep, eta, h0):
         ''' Docstring '''
 
-    	coord = self._LSCcoord[NP]
-    	nvrt = int(self._nvrt)
-    	kbpl = int(coord[0])
+        coord = self._LSCcoord[NP]
+        nvrt = int(self._nvrt)
+        kbpl = int(coord[0])
 
-    	ztmp = [np.negative(dep)]
-    	for k in range(2, len(coord) - 1):
-    		ztmp.append((eta + dep) * coord[k] + eta)
-    	ztmp.append(eta)
+        ztmp = [np.negative(dep)]
+        for k in range(2, len(coord) - 1):
+            ztmp.append((eta + dep) * coord[k] + eta)
+        ztmp.append(eta)
 
-    	zz = [np.negative(dep) for k in range(0, kbpl - 1)]
+        zz = [np.negative(dep) for k in range(0, kbpl - 1)]
 
-    	return zz + ztmp
+        return zz + ztmp
         # kbpl=kbp(inode)
         # do k=kbpl+1,nvrt-1
         # 	ztmp(k)=(eta2(inode)+dp(inode))*sigma_lcl(k,inode)+eta2(inode)
@@ -90,42 +92,42 @@ class VerticalGrid(BaseIO):
         # ztmp(nvrt)=eta2(inode) !to avoid underflow
 
     def get_pureS(self, dep, eta, h0):
-    	''' Docstring '''
+        ''' Docstring '''
 
-    	z = list()
-    	idx1, idx2, idx3 = None, None, None
+        z = list()
+        idx1, idx2, idx3 = None, None, None
 
-    	if (dep <= self.hc):
-        	idx1 = True
+        if (dep <= self.hc):
+            idx1 = True
 
-    	if eta <= (np.negative(self.hc) - (dep - self.hc) * self.thetas / np.sinh(self.thetas)):
-    		idx2 = True
-    		etam = 0.98 * (np.negative(self.hc) - (dep - self.hc)
-    		               * self.thetas / np.sinh(self.thetas))
+        if eta <= (np.negative(self.hc) - (dep - self.hc) * self.thetas / np.sinh(self.thetas)):
+            idx2 = True
+            etam = 0.98 * (np.negative(self.hc) - (dep - self.hc)
+                           * self.thetas / np.sinh(self.thetas))
 
-    	if (dep + eta) <= h0:
-    		idx3 = True
+        if (dep + eta) <= h0:
+            idx3 = True
 
-    	for i in range(0, len(self._Scoord)):
+        for i in range(0, len(self._Scoord)):
 
-    		#---------------------------------------- compute C (sigma) -----------------------------
-    		sigma = self._Scoord[i]
-    		C = (1 - self.thetab) * np.sinh(self.thetas * sigma) / np.sinh(self.thetas) + \
-    		    self.thetab * (np.tanh(self.thetas * (sigma+0.5)) - \
+            #---------------------------------------- compute C (sigma) -----------------------------
+            sigma = self._Scoord[i]
+            C = (1 - self.thetab) * np.sinh(self.thetas * sigma) / np.sinh(self.thetas) + \
+                self.thetab * (np.tanh(self.thetas * (sigma+0.5)) - \
                 np.tanh(self.thetas / 2)) / (2 * np.tanh(self.thetas / 2))
 
-    		if idx1:
-        		z.append(sigma * (dep + eta) + eta)
-    		else:
-    			z.append(eta * (1 + sigma) + self.hc * sigma + (dep - self.hc) * C)
+            if idx1:
+                z.append(sigma * (dep + eta) + eta)
+            else:
+                z.append(eta * (1 + sigma) + self.hc * sigma + (dep - self.hc) * C)
 
-    		if idx2:
-        		sigma_hat = (z[i] - etam) / (dep + etam)
-    			z[i] = sigma_hat * (dep + eta) + eta
-    		elif idx3:
-    			z[i] = dep
+            if idx2:
+                sigma_hat = (z[i] - etam) / (dep + etam)
+                z[i] = sigma_hat * (dep + eta) + eta
+            elif idx3:
+                z[i] = dep
 
-    	return z
+        return z
 
     def _read_header(self):
         '''work to be done'''
@@ -199,19 +201,19 @@ class VerticalGrid(BaseIO):
     def sigma_to_zlayer(self, NP, dep, eta, h0):
         ''' Docstring '''
 
-    	if len(self._Zcoord) > 1:
-    		zs = self.get_pureS(np.min([dep, self._h_s]), eta, h0)
-    		zz = self._Zcoord[0:-1]
-    		z = np.array(zz + zs)
-    		z[z < np.negative(dep)] = np.negative(dep)
+        if len(self._Zcoord) > 1:
+            zs = self.get_pureS(np.min([dep, self._h_s]), eta, h0)
+            zz = self._Zcoord[0:-1]
+            z = np.array(zz + zs)
+            z[z < np.negative(dep)] = np.negative(dep)
 
-    	elif len(self._Scoord) > 1:
-    		z = self.get_pureS(dep, eta, h0)
+        elif len(self._Scoord) > 1:
+            z = self.get_pureS(dep, eta, h0)
 
-    	elif len(self._LSCcoord) > 1:
-    		z = self.get_LSC(NP, dep, eta, h0)
+        elif len(self._LSCcoord) > 1:
+            z = self.get_LSC(NP, dep, eta, h0)
 
-    	return z
+        return z
 
     def link_to_root(self,rootidr):
         pass

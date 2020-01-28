@@ -1,11 +1,41 @@
 ## input file to build a 2D model with selfe
 ### those lines are compulsory
-rootdir: /home/remy/oldhome/Buisness/0448_Hokianga/test_run
+rootdir: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/
 exec_bin: pschism
 param_tmp: /home/remy/Software/schism-public/template/schism_param-v5.7.0.tmpl
-hgrid_file: /home/remy/oldhome/Buisness/0448_Hokianga/grids/hgrid.gr3
+hgrid_file: /oldroot/home/remy/Buisness/0448_Hokianga/grids/hgrid.gr3
 epsg: 2193
 
+input_files:
+  tidal_file1:
+     filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
+     url:      http://192.168.2.204:9191/uds 
+     cons:     [M2,S2,N2,K2,K1,O1,P1,Q1,MF,MM,M4,MS4,MN4]
+     dset:     nz_tide
+     vars:     [et,ut,vt]
+     var:      [et]
+     Grid:     {x: 173.335, x2: 173.645, y: -35.545, y2: -35.245, dx: 0.06, dy: 0.06}
+     type:     tide
+     id:       uds
+     dt:       0.5 
+
+  residual_file1:
+     filename: //oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/res1.nc
+     dset:     GLBv0.08
+     vars:     [surf_el]
+     var:      [surf_el]
+     Grid:     {x: 173.335, x2: 173.645, y: -35.545, y2: -35.245, dx: 0.06, dy: 0.06, z: 0, z2: 90 }
+     id:       hycom
+     dt:       3
+
+  residual_file2:
+     filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/res2.nc
+     dset:     GLBv0.08
+     vars:     [water_u,water_v]
+     var:      [water_u,water_v]
+     Grid:     {x: 173.335, x2: 173.645, y: -35.545, y2: -35.245, dx: 0.06, dy: 0.06, z: 0, z2: 90 }
+     id:       hycom
+     dt:       3
 
 vgrid_config:
   nsigma:  20
@@ -15,8 +45,8 @@ vgrid_config:
   zcoord: [10,20,30]
 
 timing:
- time start: 2014, 01, 20
- time end: 2014, 01, 30
+ time start: 2018, 01, 20
+ time end: 2018, 01, 30
 
 hydro_config:
  mode: diffusion 1
@@ -39,13 +69,17 @@ obc:
      value: -4
      inflow: 0.9
      outflow: 0.3
+     tidal: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
+     residual: /oldroot/home/remy//Buisness/0448_Hokianga/test_run/inputs/res2.nc
    itetype:
     value: 4
     tobc: 0.5
+    filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/res2.nc
    isatype:
     value: 4
     tobc: 0.5
- 2-4: #Rivers
+    filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/res2.nc
+ 2-5: #Rivers
    iettype:
      value: 0
    ifltype:
@@ -58,4 +92,34 @@ obc:
     value: 2
     const: 0
     tobc: 1         
+
+forcings:
+  elev2D.th.nc:
+    dt: 3600
+    bnd: [1]
+    tidal:
+       filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
+       vars: ['et_amp','et_pha']
+    residual:
+      filename: /oldroot/home/remy//Buisness/0448_Hokianga/test_run/inputs/res1.nc
+      vars: ['surf_el']
+
+  # uv3D.th.nc:
+  #   bnd: [1]
+  #   tidal: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
+  #   residual: /oldroot/home/remy//Buisness/0448_Hokianga/test_run/inputs/res1.nc
+
+  # SAL3D.th.nc:
+  #   bnd: [1]
+  #   filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/res1.nc
+
+  # GEN_1.th:
+  #   dt: 1
+  #   1-10:
+  #       Y: 0
+  #   11: # Maitai river
+  #       filename: /oldroot/home/remy/Buisness/0448_Hokianga/river/temp.mat
+  #       X: x
+  #       Y: y
+
 
