@@ -49,7 +49,7 @@ def get_convergence(Lat,Lon,inputEPSG):
         A=np.arctan(np.tan(lon-lon0)*np.sin(lat))
 
     else:
-        A=lon*0.
+        A=Lon*0.
 
 
 
