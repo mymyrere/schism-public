@@ -3,7 +3,7 @@ from mako.template import Template
 from mako.runtime import Context
 from io import StringIO
 from mako import exceptions
-
+import ast
 
 class ModelConfig(object):
     
@@ -341,22 +341,24 @@ class ModelConfig(object):
         '''Docstring''' 
 
         self.logger.info("\tWriting:%s" %paramfile)
-        cmdblank = Template(filename=cmdfile)
+        cmdblank = Template(filename=cmdfile,input_encoding='utf-8',output_encoding='utf-8')
         buf = StringIO()
-        stri='ctx = Context(buf,'
-
+        stri='Context(buf,'
+        
         for key in self.config[module]:
             stri=stri+key+'='+str(self.config[module][key])+','
 
         stri=stri[0:-1]+')'
-        exec(stri)
+        ctx = eval(stri.encode('utf-8'))
+        
 
-        #import pdb;pdb.set_trace()
+        #cmdblank.render_context(ctx)
         try:
             cmdblank.render_context(ctx)
         except:
-            print(exceptions.text_error_template().render())
+            self.logger.info(exceptions.text_error_template().render())
 
+	
         a=open(paramfile,'w')
         a.write(buf.getvalue())
         a.close()

@@ -16,6 +16,10 @@ from param import ModelConfig
 from bctide import  BCinputs
 from datasourcing import download_data
 from openbnd import  OpenBoundaries
+from meteo import Meteo
+from ic import InitialConditions
+from atmospheric import get_convergence
+from station import Station
 
 logging.basicConfig(filename=None,
                     filemode='w',
@@ -29,7 +33,7 @@ class SCHISM():
     '''
 
     def __init__(self, rootdir, hydro_config,vgrid_config,obc,param_tmp,exec_bin,
-                 hgrid_file,timing,input_files,forcings,
+                 hgrid_file,timing,input_files,forcings,ic=None,meteo=None,stations=None,
                  indir=None,
                  logdir=None,
                  errors=None,
@@ -42,8 +46,11 @@ class SCHISM():
         self.vgrid_config  = vgrid_config
         self.input_files = input_files
         self.forcings= forcings
+        self.meteo=meteo
         self.obc  = obc
         self.timing= timing
+        self.ic=ic
+        self.stations=stations
 
         # ----------------------------------------------------- Run paramterss -----------
         self.outdir = join(self.rootdir, 'outputs')
@@ -87,7 +94,7 @@ class SCHISM():
         #----------------------- Load horizontal grid objects ----------
         self.logger.info('\tReading: %s' % (self.hfile))
         self.hgrid = HorizontalGrid(self.hfile,format='gr3',epsg=self.epsg, logger=self.logger)
-        self.hgrid.link_to_root(self.rootdir)
+        self.hgrid.copy_to_root(self.rootdir)
 
 
 
@@ -101,7 +108,7 @@ class SCHISM():
             vgrid_reader.write(**self.vgrid_config)
    
         self.vgrid=vgrid_reader.load(self.vgrid_config['vfile'])
-
+        
 
 
         lat0=sum(self.hgrid.latitude)/len(self.hgrid.latitude)
@@ -117,7 +124,7 @@ class SCHISM():
         self.logger.info('----------------------------------------------------------')
         #----------------------- Write command file (param.in) ------------------
         cfg = ModelConfig(hydro=self.hydro_config, logger=self.logger)
-        cfg.make_config(self.param_tmp,join(self.rootdir,'param.in'),'hydro')
+        cfg.make_config(self.param_tmp,join(self.rootdir,'param.nml'),'hydro')
 
         # #----------------------- Set Boundary Conditions (bctides.in) -----------
         # # Store boundary arrays in each obc bctype object (Ex: self.obc['btype']['7']['iettype'])
@@ -127,72 +134,64 @@ class SCHISM():
 
        #  # ------------------- Create Ocean boundary forcing -----------------
         for key in self.forcings.keys():
-          Obf = OpenBoundaries(obc=self.forcings[key],hgrid=self.hgrid,vgrid=self.vgrid,t0=t0,t1=t1, logger=self.logger)
-          if 'tidal' in self.forcings[key]:
-            Obf.add_tide(self.forcings[key]['tidal'])
+          if not os.path.isfile(join(self.rootdir,key)):
+            Obf = OpenBoundaries(obc=self.forcings[key],hgrid=self.hgrid,vgrid=self.vgrid,t0=t0,t1=t1, logger=self.logger)
+            if 'tidal' in self.forcings[key]:
+              Obf.add_tide(self.forcings[key]['tidal'])
 
-          if 'residual' in self.forcings[key]:
-            Obf.add_res(self.forcings[key]['residual'])
+            if 'residual' in self.forcings[key]:
+              Obf.add_res(self.forcings[key]['residual'])
 
-          Obf.make_boundary(join(self.rootdir,key),self.forcings[key].get('dt',3600))
+            Obf.make_boundary(join(self.rootdir,key),self.forcings[key].get('dt',3600))
+
+
+       #  # ------------------- Create Oceanic initial conditions ---------------------
+        if self.ic:
+           for key in self.ic:
+               filename=os.path.join(self.rootdir,key)
+               if not os.path.isfile(filename):
+                 ic = InitialConditions(filename,hgrid=self.hgrid,t0=t0,value=self.ic[key].get('value',None),\
+                  ncfile=self.ic[key].get('filename',None),\
+                  var=self.ic[key].get('var',None),\
+                  shapefile=self.ic[key].get('shapefile',None),logger=self.logger)
+
 
 
        # #------------------------- Check/Prepare for hotstart --------------------
        #  self.hot = HotStart(nest=self.nest, logger=self.logger)
        #  self.hot.set_hotstart()
 
-       #  #-----------------------Create mesh Property fields files --------------
-       #  prop = MeshProperty(nest=self.nest, logger=self.logger)
-       #  prop.make_property()
 
-       #  # ------------------- Create Atmospheric forcing --------------------
-       #  for i,file in enumerate(self.nest.meteo.filename):
-       #      if not os.path.isfile(os.path.join(self.rootdir,'sflux','sflux_air_%i.001.nc'%int(i+1))):
-       #          atm=Meteo(nest=self.nest, dset=i,logger=self.logger)
-       #          atm.make_meteo()
+        # ------------------- Create Atmospheric forcing --------------------
+        if self.meteo and not os.path.isfile(os.path.join(self.rootdir,'sflux','sflux_inputs.txt')):
 
-       #  # ------------------- Create Nudge conditions ---------------------
-       #  if self.nest.nudge:
-       #      for mod in MOD:
-       #          if hasattr(self.nest.nudge,mod.lower()):
-       #              if not os.path.isfile(os.path.join(self.rootdir,'%s_nu.nc'%mod.upper())):
-       #                  nu=Nudging(nest=self.nest,module=mod,logger=self.logger)
-       #                  nu.make_nudging()
-       #                  nu.make_nudging_file(mod)
+          atm=Meteo(os.path.join(self.rootdir,'sflux'),t0=t0,t1=t1,dt=self.meteo.pop('dt'),logger=self.logger)
+          for key in range(1,len(self.meteo.keys())+1):
+            filename=self.meteo[key].pop('filename')
+            atm.add_dataset(filename,self.meteo[key])
 
-       #  # ------------------- Create Oceanic initial conditions ---------------------
-       #  if not self.nest.hotstart and self.nest.params.ihot == 0:
-       #      ic = InitialConditions(nest=self.nest, logger=self.logger)
-       #      ic.make_initial_state()
+          atm.make_meteo()
 
-       #  # ------------------- Create Tracers initial conditions ---------------------
-       #  if self.nest.tracers:
-       #      #if not self.nest.hotstart and self.nest.params.ihot == 0:
-       #      trc = Tracers(nest=self.nest, logger=self.logger)
-       #      trc.make_initial_state()
+        if self.meteo and not os.path.isfile(os.path.join(self.rootdir,'windrot_geo2proj.gr3')):
+        ## Create the GR3 files
+          filename = os.path.join(self.rootdir,'windrot_geo2proj.gr3')
+          ic = InitialConditions(filename,hgrid=self.hgrid,t0=t0,value=get_convergence(self.hgrid.latitude,self.hgrid.longitude,self.epsg),\
+            logger=self.logger)
 
 
-       #  # ------------------- Create Ocean boundary forcing -----------------
-       #  obc = OpenBoundaries(nest=self.nest, logger=self.logger)
-       #  obc.make_boundary()
+        if self.stations and not os.path.isfile(os.path.join(self.rootdir,'station.in')):
+          outputs=self.stations.pop('outputs')
+          st = Station(os.path.join(self.rootdir,'station.in'),self.hgrid,outputs, logger=self.logger)
+          for key in self.stations:
+            st.add_station(self.stations[key],name=key)
+
+          st.write_station()
 
        #  # ------------------- Create Wave boundary forcing -----------------
        #  if self.nest.wave:
        #      wave = Waves(nest=self.nest, logger=self.logger)
        #      wave.make_waves()
         
-       #  # ------------------- Create Riverine forcing -----------------
-       #  if self.nest.rivers:
-       #      river = Rivers(nest=self.nest, logger=self.logger)
-       #      river.make_rivers()
-
-
-
-
-        # #----------------------- Create Times object to define input data -------
-
-        # self.hot = HotStart(nest=self.nest, logger=self.logger)
-        # self.hot.set_hotstart()
 
 def load_action(yfile):
     with open(yfile, 'r') as f:

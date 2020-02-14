@@ -72,8 +72,9 @@ class download_data(object):
 
 
     def download_uds(self,fileout,source,day,tend):
-        from pymo.models.base import Data,DataList
-        from pymo.core.basetype import Grid, Times
+
+
+        from pymo_stuff import Data,DataList,Grid, Times
 
         src=copy.deepcopy(source)
 
@@ -89,8 +90,10 @@ class download_data(object):
         data = Data( idd, grid, vaars, url,**src) 
         dtimes = Times(t0=day, t1=tend)
 
-        if not data.get(dtimes, fileout, self.logger, []):
-            self.logger.info( " UDS request FAILED for %s" %(day))
+        data.get(dtimes, fileout, self.logger, [])
+
+        #if not data.get(dtimes, fileout, self.logger, []):
+        #    self.logger.info( " UDS request FAILED for %s" %(day))
 
         
 
@@ -134,7 +137,7 @@ class download_data(object):
             elif source['id'].lower()=='uds':
                 self.download_uds(filetmp,source,day,tend)
                 self.clean_uds(filetmp)
-                if source['type']=='tide':
+                if source.get('type','')=='tide':
                     break
             else:
                 self.logger.info('  Source not understood')

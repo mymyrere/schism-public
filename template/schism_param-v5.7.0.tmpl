@@ -39,6 +39,9 @@
 ! Optional parameters. The values shown below are default unless otherwise noted
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ! Starting time
+
+  ipre2= 0
+  
   start_year = ${start_year} !int
   start_month = ${start_month} !int
   start_day = ${start_day} !int
@@ -452,8 +455,8 @@
   itur = ${itur} !Default: 0
   dfv0 = ${dfv0} !needed if itur=0
   dfh0 = ${dfh0} !needed if itur=0
-  mid = ${mid} !needed if itur=3,5. Use KE if itur=5 
-  stab = ${stab} !needed if itur=3 or 5. Use 'GA' if turb_met='MY'; otherwise use 'KC'. 
+  mid = '${mid}' !needed if itur=3,5. Use KE if itur=5 
+  stab = '${stab}' !needed if itur=3 or 5. Use 'GA' if turb_met='MY'; otherwise use 'KC'. 
   xlsc0 = ${xlsc} !needed if itur=3 or 5. Scale for surface & bottom mixing length (>0)
 
 !-----------------------------------------------------------------------

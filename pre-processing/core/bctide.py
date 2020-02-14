@@ -9,9 +9,13 @@ TRACERS_MODULE=['GEN','AGE','SED3D','EcoSim','ICM','CoSiNE','FIB','TIMOR']
 def Calculate(lat, t0, cons):
 
     const = t_getconsts(np.array([]))
-    consindex = [np.where(const[0]['name']==con.ljust(4))[0][0] for con in cons]
+    Const= [con.decode('UTF-8') for con in const[0]['name']] 
+
+
+    consindex = [Const.index(con.ljust(4)) for con in cons]
+
     # V: astronomical phase, U: nodal phase modulation, F: nodal amplitude correction
-    v,u,f = t_vuf('nodal', np.array([t0]), consindex, lat)
+    v,u,f = t_vuf('nodal', np.array(t0), consindex, lat)
     tear = 360.*(v+u)
     tfreq = (2*np.pi)*const[0]['freq'][consindex]/3600.
     talpha = const[0]['name'][consindex]
@@ -234,8 +238,9 @@ class BCinputs(object):
             ifltype = btypes[k]['ifltype']['value']
             itetype = btypes[k]['itetype']['value']
             isatype = btypes[k]['isatype']['value']
+
             
-            self.bctides.write("%.f %.f %.f %.f %.f" % (self.nnode[k],iettype,ifltype,itetype,isatype))
+            self.bctides.write("%.f %.f %.f %.f %.f" % (len(self.nnode[k]),iettype,ifltype,itetype,isatype))
             ## add the tracers
             for modules in TRACERS_MODULE:
                 if modules in btypes[k]:

@@ -5,35 +5,43 @@ from scipy.spatial import Delaunay
 from netCDF4 import Dataset
 from ttide.t_getconsts import t_getconsts
 from ttide.t_vuf import t_vuf
-#from matplotlib import delaunay
+from matplotlib.tri import Triangulation
 from ttide.t_predic import t_predic
+from vcmq import regrid2d,create_grid,MV2,set_grid,griddata,grid2xy
+#from regrid import horizontal
+from vacumm.misc.grid.regridding import fill2d
+
+def missing_interp(lon,lat,arr):
+	grid0 = create_grid(lon[0,:], lat[:,0])
+	varri = MV2.asarray(arr)
+	varri=set_grid(varri, grid0)
+	tempf = fill2d(varri, method='carg')
+	lon=np.ma.masked_where(tempf==tempf.fill_value, lon)
+	lat=np.ma.masked_where(tempf==tempf.fill_value, lat)
+	arri = griddata(lon.compressed(),lat.compressed(), tempf.compressed(), (lon.compressed(), lat.compressed()), method='nat', ext=True, sub=10)
+
+	return arri
 
 def extrapolate_amp(lon,lat,lonr, latr, maskr, arr):
-	x, y = np.ma.array(lon), np.ma.array(lat)
-	x.mask, y.mask = arr.mask, arr.mask
+	arr=missing_interp(lon,lat,arr)
+	arri = grid2xy(arr,xo= lonr,yo=latr)
 
-	tri = Delaunay(x.compressed(), y.compressed())
 
-	interp = tri.nn_extrapolator(arr.compressed())
-	arr = interp(lonr, latr)
-	arr = np.ma.masked_where(maskr==0, arr)
 
-	return arr
+
+	return arri
 def extrapolate_pha(lon,lat,lonr, latr, maskr, arr):
-	x, y = np.ma.array(lon), np.ma.array(lat)
-	x.mask, y.mask = arr.mask, arr.mask
-	tri = Delaunay(x.compressed(), y.compressed())
 
 	cx, cy = np.cos(arr), np.sin(arr)
-	interp = tri.nn_extrapolator(cx.compressed())
-	cx = interp(lonr, latr)
-	interp = tri.nn_extrapolator(cy.compressed())
-	cy = interp(lonr, latr)
+	cx=missing_interp(lon,lat,cx)
+	cy=missing_interp(lon,lat,cy)
+	cx = grid2xy(cx,xo= lonr,yo=latr)
+	cy = grid2xy(cy,xo= lonr,yo=latr)
 	arr = np.arctan2(cy, cx)
-	arr = np.ma.masked_where(maskr==0, arr)
+#	arr = np.ma.masked_where(maskr==0, arr)
 	return arr
 
-def extract_HC(modfile,vars, lon, lat, conlist=None, logger=None):
+def extract_HC(modfile,Vars, lon, lat, conlist=None, logger=None):
 	"""
 	Extract harmonic constituents and interpolate onto points in lon,lat
 	set "z" to specifiy depth for transport to velocity conversion
@@ -83,11 +91,13 @@ def extract_HC(modfile,vars, lon, lat, conlist=None, logger=None):
 	else:
 		for ncon in range(0,len(f.variables['cons'])):
 			x=''
-			conList.append(''.join([x+n for n in f.variables['cons'][ncon]]))
+			conList.append(''.join([x+n.decode('UTF-8') for n in f.variables['cons'][ncon].data]))
 			conIDX.append(ncon)
 
 	const = t_getconsts(np.array([]))
-	consindex = [np.where(const[0]['name']==con.ljust(4))[0][0] for con in conList]
+	Const= [con.decode('UTF-8') for con in const[0]['name']] 
+	consindex = [Const.index(con.ljust(4)) for con in conList]
+
 	tfreq = (2*np.pi)*const[0]['freq'][consindex]/3600.
 
 	###
@@ -95,39 +105,71 @@ def extract_HC(modfile,vars, lon, lat, conlist=None, logger=None):
 
 	
 	maskr = []
+	
+	Vars=list(set([x.replace('_amp','').replace('_pha','') for x in Vars]))
 	var={}
 	# interpolating to ROMS grid requires special care with phases!!
 	#    this is subjected to parallelization via muitiprocessing.Process - do it!
 	#    there is a sandbox in roms repo with a starting exercise
-	for var0 in vars:
-		var[var0]={}
+	for var0 in Vars:
+		var[var0]=np.ones(shape=(len(tfreq),4,len(lon)))*-1e-8
 		N=-1
+
 		for con,ncon in zip(const[0]['name'][consindex],conIDX):
 			N=N+1
-			logger.info("Interpolating %s for %s" %(var0, con))
-			
-			if "amp" in var0:
-				var[var0][con] = extrapolate_amp(X, Y, lon, lat, maskr, f.variables[var0][ncon,:,:]) 
-			else:
-				var[var0][con] = extrapolate_pha(X, Y, lon, lat, maskr, f.variables[var0][ncon,:,:])
+			con=con.decode('UTF-8')
+			logger.info("Interpolating %s for %s" %(var0, con))		
+			var[var0][ncon,0,:] = extrapolate_amp(X, Y, lon, lat, maskr, f.variables[var0+"_amp"][ncon,:,:]) 
+			var[var0][ncon,2,:] = extrapolate_pha(X, Y, lon, lat, maskr, f.variables[var0+"_pha"][ncon,:,:])*180./np.pi
 
 
 
-	return var,tfreq,const[0]['name'][consindex]
+	return var,tfreq,consindex
 
-def get_tide(cons,freq,amp,pha,t,lat0):
-	nodes=len(amp[amp.keys()[0]])
+def get_tide(ju,freq,tidecon,t_time,lat0):
+	
+	nodes=tidecon.shape[2]
 
-	tide=np.ones((nodes,1))
 
-	for node in range(0,nodes):
-		tidecon=np.ones((len(cons),4))
-		for i,con in enumerate(cons):
-			tidecon[i,0]=amp[con][node]
-			tidecon[i,1]=1e8
-			tidecon[i,2]=pha[con][node]
-			tidecon[i,3]=1e8
 
-		tide[node,:]=t_predic(t,np.array(cons),np.array(freq),tidecon,lat=lat0)
+	if t_time.dtype.name.startswith('datetime64') or t_time.dtype is np.dtype("O"):
+		t_time = tm.date2num(t_time)
+
+	t_time = t_time.reshape(-1, 1)
+
+
+
+	snr = (tidecon[:, 0,0] / tidecon[:, 1,0]) ** 2
+	I = snr > 2
+
+	
+	tidecon = tidecon[I, :]
+	ju = np.asarray(ju)[I]
+	freq = freq[I]
+
+
+	ap = np.multiply(tidecon[:, 0] / 2.0,np.exp(-1j * tidecon[:, 2] * np.pi / 180))
+	am = np.conj(ap)
+
+
+	jdmid = np.mean(t_time[0:((2 * int((max(t_time.shape) - 1) / 2)) + 1)])
+
+	v, u, f = t_vuf('nodal', jdmid, ju, lat0)
+
+	ap = ap * np.kron(np.ones((ap.shape[1],1)),f * np.exp(+1j * 2 * np.pi * (u + v))).T
+	am = am * np.kron(np.ones((ap.shape[1],1)),f * np.exp(-1j * 2 * np.pi * (u + v))).T
+
+	t_time = t_time - jdmid
+
+	n, m = t_time.shape
+	yout = np.zeros([ap.shape[1], 1], dtype='complex128')
+	touter = np.outer(24 * 1j * 2 * np.pi * freq, t_time[0])
+
+	touter=np.kron(np.ones((1,ap.shape[1])),touter)
+
+	yout[:,0]=np.sum(np.multiply(np.exp(touter), ap), axis=0)+np.sum(np.multiply(np.exp(-touter), am), axis=0)
+
+	tide=np.real(yout)
+
 
 	return tide

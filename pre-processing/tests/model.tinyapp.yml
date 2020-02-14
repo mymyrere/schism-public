@@ -1,41 +1,63 @@
 ## input file to build a 2D model with selfe
 ### those lines are compulsory
-rootdir: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/
+rootdir: /oldhome/remy/Buisness/0448_Hokianga/test_run/
 exec_bin: pschism
 param_tmp: /home/remy/Software/schism-public/template/schism_param-v5.7.0.tmpl
-hgrid_file: /oldroot/home/remy/Buisness/0448_Hokianga/grids/hgrid.gr3
+hgrid_file: /oldhome/remy/Buisness/0448_Hokianga/grids/hgrid.gr3
 epsg: 2193
+timing:
+ time start: 2018, 01, 20
+ time end: 2018, 01, 30
+
 
 input_files:
   tidal_file1:
-     filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
+     filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
      url:      http://192.168.2.204:9191/uds 
      cons:     [M2,S2,N2,K2,K1,O1,P1,Q1,MF,MM,M4,MS4,MN4]
      dset:     nz_tide
      vars:     [et,ut,vt]
-     var:      [et]
-     Grid:     {x: 173.335, x2: 173.645, y: -35.545, y2: -35.245, dx: 0.06, dy: 0.06}
+     Grid:     {x: 173.335, x2: 173.645, y: -35.56, y2: -35.245, dx: 0.06, dy: 0.06}
      type:     tide
      id:       uds
      dt:       0.5 
 
   residual_file1:
-     filename: //oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/res1.nc
-     dset:     GLBv0.08
-     vars:     [surf_el]
-     var:      [surf_el]
-     Grid:     {x: 173.335, x2: 173.645, y: -35.545, y2: -35.245, dx: 0.06, dy: 0.06, z: 0, z2: 90 }
-     id:       hycom
+     filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/uv.nc
+     url:      http://192.168.2.204:9191/uds 
+     dset:     roms_nz_3D
+     vars:     [uo,vo]
+     Grid:     {x: 173.335, x2: 173.645, y: -35.56, y2: -35.245, dx: 0.06, dy: 0.06}
+     id:       uds
+     dt:       3 
+
+  residual_file3:
+     filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/ssh.nc
+     url:      http://192.168.2.204:9191/uds
+     dset:     roms_nz_surf
+     vars:     [ssh]
+     Grid:     {x: 173.335, x2: 173.645, y: -35.545, y2: -35.245, dx: 0.06, dy: 0.06 }
+     id:       uds
      dt:       3
 
   residual_file2:
-     filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/res2.nc
-     dset:     GLBv0.08
-     vars:     [water_u,water_v]
-     var:      [water_u,water_v]
-     Grid:     {x: 173.335, x2: 173.645, y: -35.545, y2: -35.245, dx: 0.06, dy: 0.06, z: 0, z2: 90 }
-     id:       hycom
+     filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/tempsalt.nc
+     url:      http://192.168.2.204:9191/uds
+     dset:     roms_nz_3D
+     vars:     [temp,salt]
+     Grid:     {x: 173.335, x2: 173.645, y: -35.545, y2: -35.245, dx: 0.06, dy: 0.06 }
+     id:       uds
      dt:       3
+
+
+  # weather_file1:
+  #    filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/Atmospheric.nc
+  #    url:      http://192.168.2.204:9191/uds
+  #    dset:     nzra1_nz
+  #    vars:     [spfh2m,vgrd10m,ugrd10m,mslp,tmp2m,dlwrfsfc,dswrfsfc,apratesfc]
+  #    Grid:     {x: 173, x2: 174, y: -36.0, y2: -35.0, dx: 0.5, dy: 0.5}
+  #    id:       uds
+  #    dt: 1
 
 vgrid_config:
   nsigma:  20
@@ -44,9 +66,6 @@ vgrid_config:
   thetaf: 10
   zcoord: [10,20,30]
 
-timing:
- time start: 2018, 01, 20
- time end: 2018, 01, 30
 
 hydro_config:
  mode: diffusion 1
@@ -60,6 +79,35 @@ hydro_config:
  hotstart dt: 24 # in hours
  ntracer_gen: 5
 
+
+ic:
+  salt.ic:
+    filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/tempsalt.nc
+    var: salt
+  temp.ic:
+    value: 15
+  tvd.prop:
+    value: 1
+
+
+# stations:
+#   outputs:
+#     elev: 1
+#     air pressure: 0
+#     windx: 0
+#     windy: 0
+#     temp: 0 
+#     sal: 0
+#     u: 0
+#     v: 0
+#     w: 0
+#   adcp1:
+#     depth: [2,50,98] # enter the depth in % (i.e 0% surface 50% mid-depth 100% bottom)
+#     node: 95
+#   rbr1:
+#     depth: [50]
+#     xy:    [1,2]
+
 obc:
  cons: Z0 M2 S2 N2 K2 K1 O1 P1 Q1 MF MM M4 MS4 MN4
  1: # open bnd
@@ -69,16 +117,15 @@ obc:
      value: -4
      inflow: 0.9
      outflow: 0.3
-     tidal: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
-     residual: /oldroot/home/remy//Buisness/0448_Hokianga/test_run/inputs/res2.nc
+
    itetype:
     value: 4
     tobc: 0.5
-    filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/res2.nc
+
    isatype:
     value: 4
     tobc: 0.5
-    filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/res2.nc
+
  2-5: #Rivers
    iettype:
      value: 0
@@ -95,31 +142,71 @@ obc:
 
 forcings:
   elev2D.th.nc:
-    dt: 3600
-    bnd: [1]
-    tidal:
-       filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
-       vars: ['et_amp','et_pha']
-    residual:
-      filename: /oldroot/home/remy//Buisness/0448_Hokianga/test_run/inputs/res1.nc
-      vars: ['surf_el']
+   dt: 900
+   bnd: [1]
+   tidal:
+     filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
+     vars: ['et_amp','et_pha']
+   residual:
+     filename: /oldhome/remy//Buisness/0448_Hokianga/test_run/inputs/ssh.nc
+     vars: ['ssh']
 
-  # uv3D.th.nc:
-  #   bnd: [1]
-  #   tidal: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
-  #   residual: /oldroot/home/remy//Buisness/0448_Hokianga/test_run/inputs/res1.nc
+  tide_only2D.th.nc:
+   dt: 900
+   bnd: [1]
+   tidal:
+     filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
+     vars: ['et_amp','et_pha']
 
-  # SAL3D.th.nc:
-  #   bnd: [1]
-  #   filename: /oldroot/home/remy/Buisness/0448_Hokianga/test_run/inputs/res1.nc
 
-  # GEN_1.th:
-  #   dt: 1
-  #   1-10:
-  #       Y: 0
-  #   11: # Maitai river
-  #       filename: /oldroot/home/remy/Buisness/0448_Hokianga/river/temp.mat
-  #       X: x
-  #       Y: y
+  tide_only3D.th.nc:
+     dt: 900
+     bnd: [1]
+     tidal:
+        filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
+        vars: ['ut_amp','vt_amp']
+
+  uv3D.th.nc:
+     dt: 900
+     bnd: [1]
+     tidal:
+        filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
+        vars: ['ut_amp','vt_amp']
+     residual:
+        filename: /oldhome/remy//Buisness/0448_Hokianga/test_run/inputs/uv.nc
+        vars: ['uo','vo']
+
+  TEM_3D.th.nc:
+     dt: 3600
+     bnd: [1]
+     residual:
+        filename: /oldhome/remy//Buisness/0448_Hokianga/test_run/inputs/tempsalt.nc
+        vars: [temp]
+
+   # TEM_nu.nc:
+   #   filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/res1.nc
+   #   vars: surf_el
+
+   # GEN_1.th:
+   #   dt: 3600
+   #   1-10:
+   #      Y: 0
+   #   11: # Maitai river
+   #      filename: /oldhome/remy/Buisness/0448_Hokianga/river/temp.mat
+   #      X: x
+   #      Y: y
+
+# meteo:
+#   dt: 1
+#   1:
+#       filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/Atmospheric.nc
+#       uwind: ugrd10m
+#       vwind: vgrd10m
+#       prmsl: mslp
+#       stmp:  tmp2m
+#       spfh:  spfh2m
+#       dlwrf: dlwrfsfc
+#       dswrf: dswrfsfc
+#       prate: apratesfc
 
 

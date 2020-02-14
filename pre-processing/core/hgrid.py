@@ -1,10 +1,8 @@
 import sys,os
-sys.path.append(os.path.join('/home/remy/Software/schism-public/','BayDeltaSCHISM','pyschism')) 
 from base_io import BaseIO
-from schism_mesh import SchismMeshGr3Reader
-from trimesh import OPEN_BOUNDARY  # OPEN_BOUNDARY
-from pyproj import Proj, transform
-from schism_setup import SchismSetup
+from pyschism.mesh import Hgrid
+
+
 
 import argparse
 # -------------------------------------------- BASE MODEL CLASSES -----------------------------
@@ -36,26 +34,27 @@ class HorizontalGrid(BaseIO):
         self.path_gr3=path_gr3
             
         # ----------------------------------------------------------- grid properties -----------       
-        self.hgrid = self.load()
+        self.hgrid = self.load(epsg)
         self.mesh = self.hgrid
-        self.nopen = self.mesh.n_boundaries(OPEN_BOUNDARY) # number of open boundaries segments    
-        self.nnode = [bnd.n_nodes() for bnd in self.mesh.boundaries if bnd.btype == OPEN_BOUNDARY]
-        self.h = self.mesh.nodes[:, 2]
+
+        self.nopen = len(self.mesh.boundaries[None]) # number of open boundaries segments    
+        self.nnode = [self.mesh.boundaries[None][bnd]['indexes'] for bnd in self.mesh.boundaries[None]]
+        self.h = self.mesh.values
         self.epsg=epsg
 
         if epsg == WGS84:
-            self.longitude = self.mesh.nodes[:, 0]
-            self.latitude = self.mesh.nodes[:, 1]
+            self.longitude = self.mesh.x
+            self.latitude = self.mesh.y
         else:
             self.path_ll=self.path_gr3[:-3]+'ll'
-            easting = self.mesh.nodes[:, 0]
-            northing = self.mesh.nodes[:, 1]
-            self.longitude, self.latitude = transform_proj(easting, northing, in_espg=epsg, out_espg=WGS84)
+            self.longitude = self.mesh.get_x(crs="EPSG:%i"%WGS84)
+            self.latitude = self.mesh.get_y(crs="EPSG:%i"%WGS84)
+
             if not os.path.isfile(self.path_ll):
-                sc=SchismSetup()
-                sc.input.mesh=self.hgrid
+                self.mesh.transform_to(WGS84)
                 self.logger.info('\tCreating: %s' % (self.path_gr3[:-3]+'ll'))
-                sc.write_hgrid_ll(self.path_gr3[:-3]+'ll',input_epsg=epsg, output_epsg=WGS84)
+                self.mesh.write(self.path_gr3[:-3]+'ll')
+                self.mesh.transform_to(epsg)
 
 
  
@@ -71,20 +70,20 @@ class HorizontalGrid(BaseIO):
         '''Docstring'''
         pass
 
-    def load(self):
+    def load(self,epsg):
         '''Docstring'''
-        return SchismMeshGr3Reader().read(fpath_mesh=self.path_gr3,read_boundary=True)
+        return Hgrid.open(self.path_gr3,crs="EPSG:%i" % epsg)
 
     def close(self):
         '''Docstring'''
         self.hgrid.close()
 
-    def link_to_root(self,rootdir):
+    def copy_to_root(self,rootdir):
         if not os.path.isfile(os.path.join(rootdir,'hgrid.gr3') ):
-            os.symlink(self.path_gr3, os.path.join(rootdir,'hgrid.gr3') )
+            os.system('cp %s %s' % (self.path_gr3, os.path.join(rootdir,'hgrid.gr3') ))
 
         if self.epsg != WGS84 and not os.path.isfile(os.path.join(rootdir,'hgrid.ll') ):    
-            os.symlink(self.path_ll, os.path.join(rootdir,'hgrid.ll') )
+            os.system('cp %s %s' % (self.path_ll, os.path.join(rootdir,'hgrid.ll') ))
 
 def run_as_script():
     parser = argparse.ArgumentParser(description="SCHISM grid reader")

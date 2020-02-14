@@ -1,5 +1,4 @@
 import sys,os
-sys.path.append(os.path.join('/home/remy/Software/schism-public/','BayDeltaSCHISM','pyschism')) 
 from base_io import BaseIO
 import numpy as np
 import argparse
