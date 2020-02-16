@@ -108,7 +108,7 @@ class Meteo(object):
                
                 for n,dataset in enumerate(self.dataset):
                    
-                    netcdf_name=('sflux_%s_%.f.%03.f.nc' % (section,n+1,k+1))
+                    netcdf_name=('sflux_%s_%.f.%04.f.nc' % (section,n+1,k+1))
                    
 
                     temp,root_grp=create_netcdf_file(os.path.join(self.input_dir,netcdf_name),self.lon[n],self.lat[n],t,file_sections[section])
@@ -123,7 +123,9 @@ class Meteo(object):
                         if self.rh2m and var is 'spfh':
                           tmp=rh2sh(tmp/100.,prmsl,stmp)
 
-                        temp[var]=np.transpose(tmp,(0,2,1)) 
+
+                        for nn in range(0,tmp.shape[0]):
+                            temp[var][nn,:,:]=tmp[nn,:,:].T 
 
 
                     root_grp.close()
