@@ -18,7 +18,7 @@ def missing_interp(lon,lat,arr):
 	tempf = fill2d(varri, method='carg')
 	lon=np.ma.masked_where(tempf==tempf.fill_value, lon)
 	lat=np.ma.masked_where(tempf==tempf.fill_value, lat)
-	arri = griddata(lon.compressed(),lat.compressed(), tempf.compressed(), (lon.compressed(), lat.compressed()), method='nat', ext=True, sub=10)
+	arri = griddata(lon.compressed(),lat.compressed(), tempf.compressed(), (lon[0,:], lat[:,0]), method='nat', ext=True, sub=10)
 
 	return arri
 
