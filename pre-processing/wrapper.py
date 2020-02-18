@@ -123,7 +123,7 @@ class SCHISM():
 
         self.logger.info('----------------------------------------------------------')
         #----------------------- Write command file (param.in) ------------------
-        cfg = ModelConfig(hydro=self.hydro_config, logger=self.logger)
+        cfg = ModelConfig(hydro=self.hydro_config,t0=t0,logger=self.logger)
         cfg.make_config(self.param_tmp,join(self.rootdir,'param.nml'),'hydro')
 
         # #----------------------- Set Boundary Conditions (bctides.in) -----------

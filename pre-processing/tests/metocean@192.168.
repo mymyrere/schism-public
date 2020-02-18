@@ -50,14 +50,14 @@ input_files:
      dt:       3
 
 
-  weather_file1:
-     filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/Atmospheric.nc
-     url:      http://192.168.2.204:9191/uds
-     dset:     nzra1_nz
-     vars:     [spfh2m,vgrd10m,ugrd10m,mslp,tmp2m,dlwrfsfc,dswrfsfc,apratesfc]
-     Grid:     {x: 173, x2: 174, y: -36.0, y2: -35.0, dx: 0.5, dy: 0.5}
-     id:       uds
-     dt: 1
+  # weather_file1:
+  #    filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/Atmospheric.nc
+  #    url:      http://192.168.2.204:9191/uds
+  #    dset:     nzra1_nz
+  #    vars:     [spfh2m,vgrd10m,ugrd10m,mslp,tmp2m,dlwrfsfc,dswrfsfc,apratesfc]
+  #    Grid:     {x: 173, x2: 174, y: -36.0, y2: -35.0, dx: 0.5, dy: 0.5}
+  #    id:       uds
+  #    dt: 1
 
 vgrid_config:
   nsigma:  20
@@ -196,17 +196,17 @@ forcings:
    #      X: x
    #      Y: y
 
-meteo:
-  dt: 1
-  1:
-      filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/Atmospheric.nc
-      uwind: ugrd10m
-      vwind: vgrd10m
-      prmsl: mslp
-      stmp:  tmp2m
-      spfh:  spfh2m
-      dlwrf: dlwrfsfc
-      dswrf: dswrfsfc
-      prate: apratesfc
+# meteo:
+#   dt: 1
+#   1:
+#       filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/Atmospheric.nc
+#       uwind: ugrd10m
+#       vwind: vgrd10m
+#       prmsl: mslp
+#       stmp:  tmp2m
+#       spfh:  spfh2m
+#       dlwrf: dlwrfsfc
+#       dswrf: dswrfsfc
+#       prate: apratesfc
 
 

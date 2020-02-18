@@ -7,7 +7,7 @@ import ast
 
 class ModelConfig(object):
     
-    def __init__(self, hydro,
+    def __init__(self, hydro,t0,
         wwm=None,
         sed=None,
         eco=None,
@@ -36,12 +36,22 @@ class ModelConfig(object):
         self.config['ice'] = ice
         self.config['sed2d'] = sed2d
         self.config['marsh'] = marsh
+        
 
         for module in self.userconfig:
             # order matters since some params are overwritten
             self.config[module]=self._get_default_params(module)
             self._replace_default_params(module)
             self._set_params_relations(module)
+
+
+        self.config['hydro']['start_year']=t0.year
+        self.config['hydro']['start_month']=t0.month
+        self.config['hydro']['start_day']=t0.day
+        self.config['hydro']['start_hour']=t0.hour
+
+
+
 
     def _define_logic(self):
         '''Defines the logic and interdependency between 
@@ -116,7 +126,7 @@ class ModelConfig(object):
             default['nadv']=1
             default['dtb_max']=30
             default['dtb_min']=10
-            default['inter_mom']=3
+            default['inter_mom']=0
             default['kr_co']=1
             default['itr_met']=3
             default['h_tvd']=5
@@ -284,15 +294,15 @@ class ModelConfig(object):
         mode=self.userconfig['hydro'].get('mode','diffusion 1')
         inter_mom=self.userconfig['hydro'].get('inter_mom',0)
         if mode=='diffusion 1':
-            self.userconfig['hydro']['inter_mom']=inter_mom
+            self.userconfig['hydro']['inter_mom']=0
             self.userconfig['hydro']['ishapiro']=1
             self.userconfig['hydro']['ihorcon']=0
             self.userconfig['hydro']['indvel']=0
         elif mode=='diffusion 2':
             self.userconfig['hydro']['inter_mom']=inter_mom
             self.userconfig['hydro']['ishapiro']=0
-            self.userconfig['hydro']['ihorcon']=2
-            self.userconfig['hydro']['indvel']=0
+            self.userconfig['hydro']['ihorcon']=0
+            self.userconfig['hydro']['indvel']=1
         elif mode=='dispersion':
             self.userconfig['hydro']['inter_mom']=0
             self.userconfig['hydro']['ishapiro']=0
@@ -321,7 +331,7 @@ class ModelConfig(object):
             for n in range(0,self.config['hydro']['ntracer_gen']):
                 self.config['hydro']['GEN_1']=self.config['hydro']['GEN_1']+'  iof_gen(%s) = 1 !N!' % str(n+1)
         else:
-            self.config['hydro']['GEN_1']='iof_gen(1) = 0'
+            self.config['hydro']['GEN_1']='!   iof_gen(1) = 0'
 
         self.config['hydro']['GEN_1']='"'+self.config['hydro']['GEN_1']+'"'
 
@@ -331,7 +341,7 @@ class ModelConfig(object):
             for n in range(0,self.config['hydro']['ntracer_age']):
                 self.config['hydro']['AGE_1']=self.config['hydro']['AGE_1']+'  iof_age(%s) = 1 !N!' % str(n+1)
         else:
-            self.config['hydro']['AGE_1']='iof_age(1) = 0'
+            self.config['hydro']['AGE_1']='!  iof_age(1) = 0 !N!!   iof_age(2) = 0'
 
         self.config['hydro']['AGE_1']='"'+self.config['hydro']['AGE_1']+'"'
 
