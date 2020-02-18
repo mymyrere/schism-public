@@ -286,6 +286,7 @@ class ModelConfig(object):
         
     def _set_params_relations(self,module):
         ''' Docstring'''
+
         self._add_more_tracers()
         self._update_timings()
         self._choose_diffusion()
@@ -294,20 +295,20 @@ class ModelConfig(object):
         mode=self.userconfig['hydro'].get('mode','diffusion 1')
         inter_mom=self.userconfig['hydro'].get('inter_mom',0)
         if mode=='diffusion 1':
-            self.userconfig['hydro']['inter_mom']=0
-            self.userconfig['hydro']['ishapiro']=1
-            self.userconfig['hydro']['ihorcon']=0
-            self.userconfig['hydro']['indvel']=0
+            self.config['hydro']['inter_mom']=0
+            self.config['hydro']['ishapiro']=1
+            self.config['hydro']['ihorcon']=0
+            self.config['hydro']['indvel']=0
         elif mode=='diffusion 2':
-            self.userconfig['hydro']['inter_mom']=inter_mom
-            self.userconfig['hydro']['ishapiro']=0
-            self.userconfig['hydro']['ihorcon']=0
-            self.userconfig['hydro']['indvel']=1
+            self.config['hydro']['inter_mom']=inter_mom
+            self.config['hydro']['ishapiro']=0
+            self.config['hydro']['ihorcon']=0
+            self.config['hydro']['indvel']=1
         elif mode=='dispersion':
-            self.userconfig['hydro']['inter_mom']=0
-            self.userconfig['hydro']['ishapiro']=0
-            self.userconfig['hydro']['ihorcon']=0
-            self.userconfig['hydro']['indvel']=0
+            self.config['hydro']['inter_mom']=0
+            self.config['hydro']['ishapiro']=0
+            self.config['hydro']['ihorcon']=0
+            self.config['hydro']['indvel']=0
         else:
             print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             print('!!!!!!!!Mode must be diffusion 1 or diffusion 2 or dispersion (eddying)!!!!!!!!!!!!!')
@@ -318,11 +319,11 @@ class ModelConfig(object):
     def _update_timings(self):
         dt=self.config['hydro']['dt']
 
-        self.userconfig['hydro']['nhot_write']=(self.userconfig['hydro']['hotstart dt']*3600)/dt
-        self.userconfig['hydro']['nspool_sta'] = (self.userconfig['hydro']['station dt']*3600)/dt
-        self.userconfig['hydro']['nspool_sta'] = (self.userconfig['hydro']['station dt']*3600)/dt
-        self.userconfig['hydro']['nspool'] = (self.userconfig['hydro']['output dt']*3600)/dt
-        self.userconfig['hydro']['ihfskip'] = (self.userconfig['hydro']['file length']*3600)/dt
+        self.config['hydro']['nhot_write']=(self.userconfig['hydro']['hotstart dt']*3600)/dt
+        self.config['hydro']['nspool_sta'] = (self.userconfig['hydro']['station dt']*3600)/dt
+        self.config['hydro']['nspool_sta'] = (self.userconfig['hydro']['station dt']*3600)/dt
+        self.config['hydro']['nspool'] = (self.userconfig['hydro']['output dt']*3600)/dt
+        self.config['hydro']['ihfskip'] = (self.userconfig['hydro']['file length']*3600)/dt
 
 
     def _add_more_tracers(self):
