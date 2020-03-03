@@ -46,7 +46,7 @@ local.properties
 [Dd]ebug/
 [Rr]elease/
 x64/
-build/
+
 [Bb]in/
 [Oo]bj/
 
@@ -218,5 +218,5 @@ pip-log.txt
 .mr.developer.cfg
 
 *.nc.gz
-
+docker/build/pgilinux-2019-1910-x86-64.tar.gz
 pre-processing/core/pymo_stuff.py

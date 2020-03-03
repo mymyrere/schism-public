@@ -71,10 +71,16 @@ RUN ["/bin/bash","-c", "source /opt/conda/etc/profile.d/conda.sh && conda activa
 RUN cd /opt/conda/envs/schism/lib/python3.6/site-packages/pyschism/mesh/ &&\
     sed -i "s|@lru_cache|@lru_cache()|g" base.py &&\
     sed -i "s|@lru_cache|@lru_cache()|g" hgrid.py &&\
-    sed -i "s|@lru_cache|@lru_cache()|g" vgrid.py
-#
+    sed -i "s|@lru_cache|@lru_cache()|g" vgrid.py &&\
+    sed -i "s|@lru_cache|@lru_cache()|g" mesh.py
+
+RUN cd /opt/conda/envs/schism/lib/python3.6/site-packages/pyschism/forcing/ &&\
+    sed -i "s|@lru_cache|@lru_cache()|g" tides.py
 ##
-#
+RUN cd /opt/conda/envs/schism/lib/python3.6/site-packages/pyschism/driver/&&\
+    sed -i "s|@lru_cache|@lru_cache()|g" driver.py &&\
+    sed -i "s|@lru_cache|@lru_cache()|g" param.py
+
 RUN echo "-----------------Install PIP stuff -----------------"
 RUN ["/bin/bash","-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate schism && pip install pyyaml mako rtree gnureadline pyproj==2.4.2"]
 

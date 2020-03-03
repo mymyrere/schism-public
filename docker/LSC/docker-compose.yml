@@ -21,11 +21,8 @@ services:
         volumes:
             - /tmp/.X11-unix:/tmp/.X11-unix
             - $HOME:/home/$USER
-            - /source/schism:/source/schism
-            - /static/hindcast/schism:/static/hindcast/schism
-            - /static/forecast/schism:/static/forecast/schism
         network_mode: host
         ipc: host
         pid: host
         environment:
-          - DISPLAY
+          - DISPLAY=unix$DISPLAY

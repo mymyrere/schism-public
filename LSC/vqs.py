@@ -232,7 +232,7 @@ class VQS():
 		if maxdepth == []:
 			maxdepth=100
 		if hsm==[]:
-			self.hsm=np.linspace(2,maxdepth,self.m_vqs)
+			self.hsm=np.linspace(2,maxdepth,self.m_vqs,dtype=int)
 		else:
 			self.hsm=hsm
 
@@ -243,9 +243,9 @@ class VQS():
 		self.sigma_vqs=[]
 		self.dp=[]
 		if nv_vqs==[]:
-			self.nv_vqs=np.ones((self.m_vqs,1))
+			self.nv_vqs=np.ones((self.m_vqs),dtype=int)
 			for i,h in enumerate(self.hsm):
-				self.nv_vqs[i,0]=4+1*i # of levels for each master grid (increasing with depth)
+				self.nv_vqs[i]=4+1*i # of levels for each master grid (increasing with depth)
 		else:
 			self.nv_vqs=nv_vqs
 
@@ -281,8 +281,8 @@ class VQS():
 				z_mas[0:np.int(nv_vqs[m]),m] = V_RUTGERS[0:np.int(nv_vqs[m])].T*self.hsm[m]
 
 
-		z_m=np.ones((int(1+nvrt_m[0]),int(self.m_vqs)))
-		z_m[0,:]=nv_vqs[:,0]
+		z_m=np.ones((int(1+nvrt_m),int(self.m_vqs)))
+		z_m[0,:]=nv_vqs[:]
 		z_m[1:,:]=z_mas
 		self.master=z_m
 
