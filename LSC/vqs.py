@@ -380,6 +380,7 @@ class VQS():
 		nvrt=int(self.sigma_vqs.shape[0])
 		kbp1=nvrt-nlev-1
 		sigma_vqs=np.flipud(self.sigma_vqs)
+
 		for ii in ind:
 			sigout=np.ones(nvrt)*99.
 			sig0=np.ones(nvrt)*0
@@ -390,7 +391,7 @@ class VQS():
 			sig0[kbp0:nvrt]=np.linspace(int(-1),int(0),int(nvrt-kbp0))
 			sig1=np.linspace(int(-1),int(0),int(nlev))
 			for r in range(1,nlev-1):
-				for kk in range( nvrt-self.kbp[ii],nvrt):
+				for kk in range( int(nvrt-self.kbp[ii]),int(nvrt)):
 					if (sig1[r]>=sig0[kk-1]) & (sig1[r]<=sig0[kk]):
 						rat=(sig1[r]-sig0[kk-1])/(sig0[kk]-sig0[kk-1])
 						sigout[kbp1+r+1]=sigma_vqs[kk,ii]*rat+sigma_vqs[kk-1,ii]*(1-rat)
@@ -402,6 +403,7 @@ class VQS():
 			znd[0]=0
 			znd[0:nlev]=self.dp[ii]*np.flipud(sigout[-nlev:])
 			self.znd[:,ii]=znd
+
 
 		
 

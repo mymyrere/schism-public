@@ -17,7 +17,7 @@ from matplotlib.figure import Figure
 from PyQt5 import QtCore, QtGui, uic
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget
+from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget,QMessageBox,QInputDialog,QFileDialog
 
 from pyschism.mesh import Hgrid
 import vqs
@@ -72,6 +72,7 @@ class SelectFromCollection(object):
         if self.parent._active == "ZOOM" or self.parent._active == "PAN":
                 return
         path = Path(verts)
+
         self.ind .extend( np.nonzero([path.contains_point(xy) for xy in self.xys])[0])
         self.ind=list(np.unique(self.ind))
         for line in self.ax.axes.lines:
@@ -166,16 +167,18 @@ class MyToolbar(NavigationToolbar):
             self.remove_series('node')
             ind=self.selector.ind
             del self.selector
+
             self.figure_canvas.draw_idle()
             app.vgrid.update_vgrid(ind,num)
+            app.nlev.values[:]=app.vgrid.kbp[:,0]
             app.vgrid.extract_trs(app.Xtrs,app.Ytrs,app.Ntrs)
             app.draw_map()
             app.draw_vgrid()
 
         else:
             ax=self.axes_canvas.get_axes()[0]
-            Y=app.gr.mesh.nodes[:,1]
-            X=app.gr.mesh.nodes[:,0]
+            Y=app.gr.y
+            X=app.gr.x
             self.selector = SelectFromCollection(ax, np.vstack((X.flatten(),Y.flatten())).T,self)    
             self.figure_canvas.draw_idle()
 
@@ -229,12 +232,15 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
         self.gr = Hgrid.open(os.path.expanduser(app.arguments()[1]))
         self.gr.values[:]=self.gr.values[:]*-1.
+        self.nlev=copy.deepcopy(self.gr)
+        self.nlev.values[:]=self.nlev.values[:]*0
 
         self.create_transect()
         #self.hsm.setText('0:%i:50'% (np.ceil(self.gr.mesh.nodes[:,2].max())+50))
         self.hsm.setText('2 12 22 32 42 52 62 72 82 200 2000')
         self.vgrid=self.create_vgrid(maxdepth=np.ceil(self.gr.values.max()),hsm=self.get_hsm(self.hsm.text()))
         self.vgrid.compute_zcor(self.gr.values,a_vqs0=-0.3,opt=1)
+        self.nlev.values[:]=self.vgrid.kbp[:,0]
         self.vgrid.extract_trs(self.Xtrs,self.Ytrs,self.Ntrs)
         self.create_main_frame()
         self.create_vertical_frame()
@@ -242,7 +248,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
         self.draw_vgrid()
 
     def exportTRS(self):
-        file_name = QtGui.QFileDialog.getSaveFileName(self, "Save transect file", "", "Transect (*.bp)")
+        file_name = QFileDialog.getSaveFileName(self, "Save transect file", "", "Transect (*.bp)")
         Z=self.Ztrs*-1.
         X=self.Xtrs
         Y=self.Ytrs
@@ -255,23 +261,23 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
         fh.close()
     def exportLEV(self):
-        file_name = QtGui.QFileDialog.getSaveFileName(self, "Number of level", "", "SCHSIM grid file (*.gr3)")
-        gr=copy.depcopy(self.gr)
-        gr.values=self.vgrid.kbp[:,0]
+        file_name = QFileDialog.getSaveFileName(self, "Number of level", "", "SCHSIM grid file (*.gr3)")
+        gr=copy.deepcopy(self.gr)
+        gr.values[:]=self.vgrid.kbp[:,0]
         gr.write(str(file_name))
 
     def importLEV(self):
-        file_name = QtGui.QFileDialog.getOpenFileName(self, "Load nlev.gr3 file", "", "SCHSIM grid file(*.gr3)")
-        self.nlev = load_gr3(str(file_name))
+        file_name = QFileDialog.getOpenFileName(self, "Load nlev.gr3 file", "", "SCHSIM grid file(*.gr3)")
+        self.nlev=Hgrid.open(str(file_name))
         self.change_nlev()
         self.draw_map()
         self.draw_vgrid()
     def exportV(self):
-        file_name = QtGui.QFileDialog.getSaveFileName(self, "Save Vgrid file", "", "SCHSIM vgrids (*.in)")
+        file_name = QFileDialog.getSaveFileName(self, "Save Vgrid file", "", "SCHSIM vgrids (*.in)")
         self.vgrid.export_vgrid(file_name)
 
     def exportVparams(self):
-        file_name = QtGui.QFileDialog.getSaveFileName(self, "Save Vgrid param file", "", "SCHSIM vgrids params(*.yaml)")
+        file_name = QFileDialog.getSaveFileName(self, "Save Vgrid param file", "", "SCHSIM vgrids params(*.yaml)")
         params=self.get_all_value()
         params['nv_vqs']=params['nv_vqs'].tolist()
         params['hsm']=params['hsm'].tolist()
@@ -279,14 +285,14 @@ class MyApp(QMainWindow, Ui_MainWindow):
             params['thetaf']=params['thetaf'].tolist()
         if type(params['thetab'])==np.ndarray:
             params['thetab']=params['thetab'].tolist()
-        with open(file_name+'.yaml', 'w') as yaml_file: # this would write the yaml file that my function read probably best so we can track
+        with open(file_name, 'w') as yaml_file: # this would write the yaml file that my function read probably best so we can track
             yaml.dump(params, yaml_file, default_flow_style=False)
 
 
     def importH(self):
         pass
     def importV(self):
-        file_name = QtGui.QFileDialog.getOpenFileName(self, "Load Vgrid param file", "", "SCHSIM vgrids params(*.yaml)")
+        file_name = QFileDialog.getOpenFileName(self, "Load Vgrid param file", "", "SCHSIM vgrids params(*.yaml)")
         with open(file_name ,'r') as f:
             params = yaml.load(f)
         params['nv_vqs']=np.asarray(params['nv_vqs'])
@@ -350,12 +356,15 @@ class MyApp(QMainWindow, Ui_MainWindow):
     def change_nlev(self):
         old_nlev=self.vgrid.kbp[:,0]
         new_nlev=self.nlev.values
-        di=old_nlev-new_nlev
-        di_lev_unique=set(np.delete(di,np.where(di==0.0),axis=0))
-        for nlev in di_lev_unique:
-            ind=np.where(di==nlev)[0]
-            new=self.vgrid.kbp[ind[0],0]-int(nlev)
-            self.vgrid.update_vgrid(ind,int(new))
+
+        if sum(new_nlev)>0:
+	        di=old_nlev-new_nlev
+	        di_lev_unique=set(np.delete(di,np.where(di==0.0),axis=0))
+	        for nlev in di_lev_unique:
+	            ind=np.where(di==nlev)[0]
+	            new=self.vgrid.kbp[ind[0],0]-int(nlev)
+	            self.vgrid.update_vgrid(ind,int(new))
+	            self.nlev.values[ind]=int(new)
 
 
     def create_main_frame(self):
@@ -414,6 +423,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
             	self.els[I,:]=elem[q,0:3]
             	self.els[I+1,:]=elem[q,[0,2,3]]
             	I=I+2
+            self.triang=Triangulation(gr.x,gr.y,self.els)
 
 
 
@@ -442,10 +452,10 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
         
 
-        triang=Triangulation(gr.x,gr.y,self.els)
+        
         #quads=Triangulation(gr.x,gr.y,quads)
         
-        tricon=self.axes.tricontourf(triang,gr.values,vmin=Zmin,vmax=Zmax,cmap=plt.cm.Spectral_r,levels=levels,gid='map', origin='lower',antialiased=False)
+        tricon=self.axes.tricontourf(self.triang,gr.values,vmin=Zmin,vmax=Zmax,cmap=plt.cm.Spectral_r,levels=levels, origin='lower',antialiased=False)
 
 
 
@@ -516,6 +526,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
         if self.thetab_exp.text()=='':
             thetab=self.thetab.value()
+
         else:
             thetab=self.get_theta(params['hsm'],self.thetab_exp.text())
         if self.thetaf_exp.text()=='':
@@ -527,7 +538,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
         params['thetaf']=thetaf
         params['nv_vqs']=self.get_nv_vqs(params['hsm'],self.nv_vqs.text())
         opt=self.sigma_type.currentIndex()+1
-        if self.rutgers.isChecked():
+        if self.rutgers.isChecked() and opt==2:
             opt=3
             params['rtheta_s']=self.rtheta_s.value()
             params['rtheta_b']=self.rtheta_b.value()
@@ -622,7 +633,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
         try:
             hsm=self.get_hsm(self.hsm.text())
         except:
-            QtGui.QMessageBox.information(QWidget(), "No", "Syntax not correct for depth" )
+            QMessageBox.information(QWidget(), "No", "Syntax not correct for depth" )
             return
 
 
@@ -632,6 +643,11 @@ class MyApp(QMainWindow, Ui_MainWindow):
             thetab=self.get_theta(hsm,self.thetab_exp.text())
         if self.thetaf_exp.text()=='':
             thetaf=self.thetaf.value()
+            
+            if thetaf<=0:
+            	self.thetaf.setValue(.01)
+            	thetaf=.1
+
         else:
             thetaf=self.get_theta(hsm,self.thetaf_exp.text())
 
@@ -639,24 +655,24 @@ class MyApp(QMainWindow, Ui_MainWindow):
         try:
             nv_vqs=self.get_nv_vqs(hsm,self.nv_vqs.text())
         except:
-            QtGui.QMessageBox.information(QWidget(), "No", "Syntax not correct for N lev" )
+            QMessageBox.information(QWidget(), "No", "Syntax not correct for N lev" )
             return
 
         maxdepth=np.ceil(self.gr.values.max())
         if hsm.max()<maxdepth:
-            QtGui.QMessageBox.critical(QWidget(), "No", "last depth must be > Max depth of  %.f " % (maxdepth))
+            QMessageBox.critical(QWidget(), "No", "last depth must be > Max depth of  %.f " % (maxdepth))
             return
 
         if len(hsm)<2:
-            QtGui.QMessageBox.critical(QWidget(), "No", "You need at least 2 master grid")
+            QMessageBox.critical(QWidget(), "No", "You need at least 2 master grid")
             return
 
         if len(hsm)>100:
-            QtGui.QMessageBox.critical(QWidget(), "No", "Too much")
+            QMessageBox.critical(QWidget(), "No", "Too much")
             return
         
         rutgers={}
-        if self.rutgers.isChecked():
+        if self.rutgers.isChecked() and opt==2:
             opt=3
             rutgers['rtheta_s']=self.rtheta_s.value()
             rutgers['rtheta_b']=self.rtheta_b.value()
@@ -672,8 +688,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
         self.vgrid.compute_zcor(self.gr.values,a_vqs0=a_vqs0,dz_bot_min=dz_bot_min,opt=opt,rutgers=rutgers)
 
-        if self.nlev!=[]:
-            self.change_nlev()
+        self.change_nlev()
             
         self.vgrid.extract_trs(self.Xtrs,self.Ytrs,self.Ntrs)
         self.draw_vgrid()
