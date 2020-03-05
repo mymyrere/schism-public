@@ -159,6 +159,7 @@ class ModelConfig(object):
             default['sav_cd']=1.13
             default['nstep_ice']=1
             default['elev']=1
+            default['bott']=0 #bottom stress
             default['wind']=0 #wind velocity vector [m/s] {wind_speed}
             default['wist']=0 #wind stress vector [m^2/s/s] {wind_stress}
             default['dav']=0 #depth-averaged vel vector [m/s] {dahv}

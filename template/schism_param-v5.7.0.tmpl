@@ -633,7 +633,7 @@
   iof_hydro(10) = 0 !total flux=-flsu-fllu-(radu-radd) [W/m/m] {total_heat_flux}
   iof_hydro(11) = 0 !evaporation rate [kg/m/m/s] {evaporation}
   iof_hydro(12) = 0 !precipitation rate [kg/m/m/s] {precipitation}
-  iof_hydro(13) = 0 !Bottom stress vector [kg/m/s^2(Pa)] {bottom_stress}
+  iof_hydro(13) = ${bott} !Bottom stress vector [kg/m/s^2(Pa)] {bottom_stress}
   iof_hydro(14) = ${wind} !wind velocity vector [m/s] {wind_speed}
   iof_hydro(15) = ${wist} !wind stress vector [m^2/s/s] {wind_stress}
   iof_hydro(16) = ${dav} !depth-averaged vel vector [m/s] {dahv}
