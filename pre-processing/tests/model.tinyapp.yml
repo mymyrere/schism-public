@@ -13,7 +13,7 @@ timing:
 input_files:
   tidal_file1:
      filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/tide.nc
-     url:      http://192.168.2.204:9191/uds 
+     url:      http:///uds 
      cons:     [M2,S2,N2,K2,K1,O1,P1,Q1,MF,MM,M4,MS4,MN4]
      dset:     nz_tide
      vars:     [et,ut,vt]
@@ -24,7 +24,7 @@ input_files:
 
   residual_file1:
      filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/uv.nc
-     url:      http://192.168.2.204:9191/uds 
+     url:      http:///uds 
      dset:     roms_nz_3D
      vars:     [uo,vo]
      Grid:     {x: 173.335, x2: 173.645, y: -35.56, y2: -35.245, dx: 0.06, dy: 0.06}
@@ -33,7 +33,7 @@ input_files:
 
   residual_file3:
      filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/ssh.nc
-     url:      http://192.168.2.204:9191/uds
+     url:      http:///uds
      dset:     roms_nz_surf
      vars:     [ssh]
      Grid:     {x: 173.335, x2: 173.645, y: -35.545, y2: -35.245, dx: 0.06, dy: 0.06 }
@@ -42,7 +42,7 @@ input_files:
 
   residual_file2:
      filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/tempsalt.nc
-     url:      http://192.168.2.204:9191/uds
+     url:      http:///uds
      dset:     roms_nz_3D
      vars:     [temp,salt]
      Grid:     {x: 173.335, x2: 173.645, y: -35.545, y2: -35.245, dx: 0.06, dy: 0.06 }
@@ -52,7 +52,7 @@ input_files:
 
   weather_file1:
      filename: /oldhome/remy/Buisness/0448_Hokianga/test_run/inputs/Atmospheric.nc
-     url:      http://192.168.2.204:9191/uds
+     url:      http:///uds
      dset:     nzra1_nz
      vars:     [spfh2m,vgrd10m,ugrd10m,mslp,tmp2m,dlwrfsfc,dswrfsfc,apratesfc]
      Grid:     {x: 173, x2: 174, y: -36.0, y2: -35.0, dx: 0.5, dy: 0.5}
